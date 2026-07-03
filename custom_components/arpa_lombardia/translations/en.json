@@ -1,0 +1,25 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured",
+            "cannot_connect": "Failed to connect"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "idstazione": "Station"
+                },
+                "title": "Select a monitoring station"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "scan_interval": "Scan interval (seconds)"
+                }
+            }
+        }
+    }
+}
