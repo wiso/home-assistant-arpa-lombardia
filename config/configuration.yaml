@@ -1,0 +1,7 @@
+# Minimal Home Assistant config for local development.
+default_config:
+
+logger:
+  default: info
+  logs:
+    custom_components.arpa_lombardia: debug

@@ -8,3 +8,7 @@ __pycache__/
 htmlcov/
 .venv/
 venv/
+
+# Local Home Assistant dev runtime (keep only configuration.yaml)
+config/*
+!config/configuration.yaml

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+
+cd "$(dirname "$0")/.."
+
+# Create the config dir with a default config on first run.
+if [ ! -d config ]; then
+    mkdir -p config
+    hass --script ensure_config -c config
+fi
+
+# Expose this repo's integration to Home Assistant as a custom component.
+mkdir -p config/custom_components
+ln -sfn "$(pwd)/custom_components/arpa_lombardia" config/custom_components/arpa_lombardia
+
+# Start Home Assistant on http://localhost:8123
+hass -c config --debug
