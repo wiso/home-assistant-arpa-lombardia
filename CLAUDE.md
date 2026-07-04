@@ -39,7 +39,10 @@ pytest tests/test_sensor.py::test_name -v
 ```
 
 CI (`.github/workflows/test.yml`) runs `ruff check custom_components tests` then
-`pytest tests -v` on Python 3.12 — always keep both green. `validate.yml` runs
+`pytest tests -v` on Python 3.14 (required by the pinned `homeassistant`/
+`pytest-homeassistant-custom-component` versions — check their `Requires-Python`
+before bumping either without also checking the CI Python version) — always
+keep both green. `validate.yml` runs
 hassfest and the HACS integration validator (brands check intentionally skipped;
 see the workflow comment for why).
 
