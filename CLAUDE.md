@@ -71,7 +71,13 @@ Key cross-file behaviors worth knowing before touching this code:
   against `async_get_sensor_ids_with_data` *before* constructing the coordinator,
   so only sensors that actually publish data become entities — this is what
   prevents permanently-`unknown` sensors. If you're debugging a "missing sensor"
-  report, check this filter first, not the coordinator.
+  report, check this filter first, not the coordinator. **Caveat:** the NRT
+  values feed only holds *the current day's* data and is periodically empty for
+  every station (just after midnight before the day's hourly rows land, or
+  during ARPA maintenance). To avoid a (re)start in that window dropping *all*
+  entities until the entry is reloaded, the filter falls back to the full
+  registry list when it would otherwise keep zero sensors (`sensors_with_data
+  or sensors`).
 - **Device class is applied only when the API's unit matches what HA expects for
   it** (`sensor.py: resolve_device_class`, checked dynamically against HA's
   `DEVICE_CLASS_UNITS`). Pollutant name → device class mapping is split into

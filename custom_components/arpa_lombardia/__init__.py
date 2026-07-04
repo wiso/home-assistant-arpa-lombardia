@@ -30,7 +30,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Keep only sensors that actually publish data, to avoid permanently
     # "unknown" entities for sensors the registry lists but the feed omits.
-    sensors = [sensor for sensor in sensors if sensor.idsensore in ids_with_data]
+    #
+    # The NRT values feed only holds the current day's data and is periodically
+    # empty for *every* station — e.g. just after midnight before the new day's
+    # hourly rows are published, or during ARPA maintenance. If HA (re)starts in
+    # such a window, the filter would drop every sensor and we'd create no
+    # entities at all, and they'd never reappear until the entry is reloaded
+    # while the feed happens to be populated. Fall back to the full registry
+    # list so the entities still exist (they simply stay "unknown" until the
+    # feed refills).
+    sensors_with_data = [
+        sensor for sensor in sensors if sensor.idsensore in ids_with_data
+    ]
+    sensors = sensors_with_data or sensors
 
     scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     coordinator = ArpaLombardiaDataUpdateCoordinator(
