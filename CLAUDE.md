@@ -70,12 +70,14 @@ Key cross-file behaviors worth knowing before touching this code:
   prevents permanently-`unknown` sensors. If you're debugging a "missing sensor"
   report, check this filter first, not the coordinator.
 - **Device class is applied only when the API's unit matches what HA expects for
-  it** (`sensor.py: resolve_device_class`). Pollutant name → device class mapping
-  is split into exact-match gases (`GAS_DEVICE_CLASSES`) and substring-matched
-  particulates (PM10/PM2.5, since the API's name for these varies). This is why
-  CO is exposed as a plain mg/m³ measurement instead of using
-  `SensorDeviceClass.CO` (which expects ppm) — don't "fix" that without checking
-  `DEVICE_CLASS_UNITS` first.
+  it** (`sensor.py: resolve_device_class`, checked dynamically against HA's
+  `DEVICE_CLASS_UNITS`). Pollutant name → device class mapping is split into
+  exact-match gases (`GAS_DEVICE_CLASSES`) and substring-matched particulates
+  (PM10/PM2.5, since the API's name for these varies). `DEVICE_CLASS_UNITS` has
+  changed across HA versions (e.g. CO's allowed units expanded from just
+  ppm/ppb to also include mg/m³ and μg/m³ by 2026.7) — a `pytest` failure on the
+  CO/PM assertions after a HA version bump likely means the test's expected
+  unit set is stale, not that `resolve_device_class` broke.
 - **`-9999` means invalid measurement** (`const.INVALID_VALUE`), normalized to
   `None` in `api._async_get_latest_value` — never surface the raw sentinel value
   to entities.

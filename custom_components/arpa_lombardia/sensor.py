@@ -30,6 +30,19 @@ GAS_DEVICE_CLASSES: dict[str, SensorDeviceClass] = {
 
 DEFAULT_ICON = "mdi:molecule"
 
+# ARPA's feed uses the micro sign (U+00B5, "µ"), but newer Home Assistant
+# versions define concentration units (and DEVICE_CLASS_UNITS) using the
+# Greek small letter mu (U+03BC, "μ"). Both render identically, so normalize
+# before comparing against DEVICE_CLASS_UNITS to avoid silently dropping the
+# device class (and falling back to the default icon) on a glyph mismatch.
+_MICRO_SIGN = "µ"
+_GREEK_MU = "μ"
+
+
+def _normalize_unit(unit: str) -> str:
+    """Normalize micro-sign/Greek-mu variants so unit comparisons are stable."""
+    return unit.replace(_MICRO_SIGN, _GREEK_MU)
+
 
 def _device_class_for(name: str) -> SensorDeviceClass | None:
     """Return the device class for a pollutant name, ignoring the unit."""
@@ -44,15 +57,17 @@ def resolve_device_class(name: str, unit: str) -> SensorDeviceClass | None:
     """Return the device class only if the API unit is valid for it.
 
     ARPA reports pollutants in mass concentration (µg/m³, mg/m³, ng/m³). A device
-    class is applied only when HA accepts that unit for it; otherwise the sensor
-    keeps its native API unit with no device class. This avoids, for example,
-    forcing the CO device class (which expects ppm) onto a mg/m³ value.
+    class is applied only when HA accepts that unit for it (per
+    `DEVICE_CLASS_UNITS`); otherwise the sensor keeps its native API unit with
+    no device class.
     """
     device_class = _device_class_for(name)
     if device_class is None:
         return None
     allowed_units = DEVICE_CLASS_UNITS.get(device_class)
-    if allowed_units is not None and unit not in allowed_units:
+    if allowed_units is not None and _normalize_unit(unit) not in {
+        _normalize_unit(allowed_unit) for allowed_unit in allowed_units
+    }:
         return None
     return device_class
 

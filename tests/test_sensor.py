@@ -6,7 +6,11 @@ from custom_components.arpa_lombardia.const import (
     CONF_STATION_NAME,
     DOMAIN,
 )
-from homeassistant.const import ATTR_ATTRIBUTION, STATE_UNKNOWN
+from homeassistant.const import (
+    ATTR_ATTRIBUTION,
+    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+    STATE_UNKNOWN,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
@@ -34,7 +38,10 @@ async def test_sensors(
     assert pm25_entity_id is not None
     pm25_state = hass.states.get(pm25_entity_id)
     assert pm25_state.state == "12.5"
-    assert pm25_state.attributes["unit_of_measurement"] == "µg/m³"
+    assert (
+        pm25_state.attributes["unit_of_measurement"]
+        == CONCENTRATION_MICROGRAMS_PER_CUBIC_METER
+    )
     assert pm25_state.attributes["device_class"] == "pm25"
     assert pm25_state.attributes[ATTR_ATTRIBUTION] == "Data provided by ARPA Lombardia"
 
@@ -44,14 +51,15 @@ async def test_sensors(
     ozono_state = hass.states.get(ozono_entity_id)
     assert ozono_state.state == STATE_UNKNOWN
 
-    # CO is reported in mg/m³, which HA does not accept for the CO device class,
-    # so it keeps its native unit and gets no device class (no unit conversion).
+    # CO is reported in mg/m³. HA 2026.7+ accepts this unit for the CO device
+    # class (older versions only accepted ppm/ppb), so it now gets classified
+    # while keeping its native unit (no unit conversion).
     co_entity_id = entity_registry.async_get_entity_id("sensor", DOMAIN, "700_103")
     assert co_entity_id is not None
     co_state = hass.states.get(co_entity_id)
     assert co_state.state == "1.2"
     assert co_state.attributes["unit_of_measurement"] == "mg/m³"
-    assert "device_class" not in co_state.attributes
+    assert co_state.attributes["device_class"] == "carbon_monoxide"
 
 
 async def test_sensors_without_data_are_skipped(
