@@ -82,12 +82,12 @@ async def test_form_cannot_connect(
     assert result["reason"] == "cannot_connect"
 
 
-async def test_form_already_configured(
+async def test_form_hides_configured_stations(
     hass: HomeAssistant,
     mock_setup_entry: AsyncMock,
     mock_arpa_lombardia_config_flow_client: AsyncMock,
 ) -> None:
-    """Test we abort if the station is already configured."""
+    """Already-configured stations are not offered in the dropdown."""
     MockConfigEntry(
         domain=DOMAIN,
         unique_id="700",
@@ -97,12 +97,33 @@ async def test_form_already_configured(
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {CONF_IDSTAZIONE: "700"}
+
+    schema = result["data_schema"].schema
+    selector = next(iter(schema.values()))
+    values = [option["value"] for option in selector.config["options"]]
+    assert "700" not in values
+    assert "701" in values
+
+
+async def test_form_no_stations_left(
+    hass: HomeAssistant,
+    mock_setup_entry: AsyncMock,
+    mock_arpa_lombardia_config_flow_client: AsyncMock,
+) -> None:
+    """The flow aborts when every station is already configured."""
+    for idstazione, name in (("700", "Cormano"), ("701", "Milano")):
+        MockConfigEntry(
+            domain=DOMAIN,
+            unique_id=idstazione,
+            data={CONF_IDSTAZIONE: idstazione, CONF_STATION_NAME: name},
+        ).add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
     assert result["type"] == FlowResultType.ABORT
-    assert result["reason"] == "already_configured"
+    assert result["reason"] == "no_stations"
 
 
 async def test_options_flow(

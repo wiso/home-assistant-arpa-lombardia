@@ -86,9 +86,20 @@ class ArpaLombardiaConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return f"{station.nomestazione} ({station.comune})"
             return f"{station.nomestazione} ({station.comune}) — {dist / 1000:.1f} km"
 
+        # Don't offer stations that already have a config entry (unique_id is
+        # the idstazione), so the dropdown only lists ones the user can add.
+        configured_ids = self._async_current_ids()
+        available = [
+            station
+            for station in stations.values()
+            if station.idstazione not in configured_ids
+        ]
+        if not available:
+            return self.async_abort(reason="no_stations")
+
         options = [
             SelectOptionDict(value=station.idstazione, label=label(station))
-            for station in sorted(stations.values(), key=sort_key)
+            for station in sorted(available, key=sort_key)
         ]
         schema = vol.Schema(
             {

@@ -2,13 +2,15 @@
     "config": {
         "abort": {
             "already_configured": "Device is already configured",
-            "cannot_connect": "Failed to connect"
+            "cannot_connect": "Failed to connect",
+            "no_stations": "All ARPA Lombardia stations are already configured."
         },
         "step": {
             "user": {
                 "data": {
                     "idstazione": "Station"
                 },
+                "description": "Air quality data comes from ARPA Lombardia, published as Regione Lombardia open data (dati.lombardia.it). Pick a monitoring station: the integration creates one sensor per pollutant that station actually measures. Stations are sorted by distance from your Home Assistant location.",
                 "title": "Select a monitoring station"
             }
         }

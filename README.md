@@ -15,7 +15,7 @@ air quality datasets, updated hourly).
 
 - **UI configuration** — no YAML. Choose a station from a dropdown **sorted by
   distance** from your Home Assistant location, with the distance shown in each
-  entry.
+  entry. Stations you have already added are left out of the list.
 - **One device per station**, with one sensor per pollutant. Only pollutants
   that actually publish data are created (no permanently *unknown* sensors).
 - **Correct device classes and units** — units come straight from the API and a
@@ -49,8 +49,15 @@ To change how often data is fetched: open the integration and click
 
 ## Notes on the data
 
-- A value of `-9999` in the source data means *invalid measurement*; the sensor
-  is reported as `unknown` in that case.
+- The near-real-time feed only holds the **current day's** measurements, so it is
+  briefly empty every night (after midnight, before the day's hourly rows are
+  published) and during ARPA maintenance. Rather than flip to `unknown` in those
+  gaps, each sensor **keeps showing its last known value** (restored across Home
+  Assistant restarts) until a newer reading arrives. A sensor is only `unknown`
+  before it has ever reported a value; the reading's age is visible as the
+  entity's `last_changed`.
+- A value of `-9999` in the source data means *invalid measurement* and is
+  discarded (treated as no reading — the last known value is kept).
 - Carbon monoxide is published in mg/m³. Home Assistant's `carbon_monoxide`
   device class expects ppm, so CO is exposed as a plain measurement in its
   native mg/m³ unit (no assumption-laden conversion).
