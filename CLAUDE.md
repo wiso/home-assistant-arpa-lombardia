@@ -43,16 +43,19 @@ CI (`.github/workflows/test.yml`) runs `ruff check custom_components tests` then
 `pytest-homeassistant-custom-component` versions — check their `Requires-Python`
 before bumping either without also checking the CI Python version) — always
 keep both green. `validate.yml` runs hassfest and the HACS integration
-validator; both currently pass without the integration being registered in
-`home-assistant/brands` (a custom repository doesn't require it — that's only a
-hard requirement for the HACS *default* store).
+validator (`hacs/action`).
 
-The `icon.png` / `icon@2x.png` under the repo-root `brand/` directory are
-**source assets only**, kept for a future PR to `home-assistant/brands`
-(`custom_integrations/arpa_lombardia/`). Home Assistant and HACS load icons
-solely from `brands.home-assistant.io`, never from a folder inside the
-component, so these must **not** be moved back under `custom_components/` — there
-they'd just be dead weight shipped to every user.
+The HACS validator's **brands** check is what keeps
+`custom_components/arpa_lombardia/brand/icon.png` (+ `icon@2x.png`) in the tree:
+`hacs/action` looks for brand assets at exactly that in-component path first, and
+only falls back to the `home-assistant/brands` repository if they're absent.
+This integration is **not** registered in `home-assistant/brands`, so removing
+those files fails the `Validate` workflow (`<Validation brands> failed`) — do
+not move them out of the component. (Home Assistant's *runtime* still serves
+icons only from `brands.home-assistant.io`; the in-component `brand/` folder
+exists purely to satisfy the HACS validation. To eventually drop it, register
+the domain under `home-assistant/brands/custom_integrations/arpa_lombardia/`
+instead.)
 
 ## Architecture
 
