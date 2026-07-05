@@ -90,6 +90,18 @@ Key cross-file behaviors worth knowing before touching this code:
 - **`-9999` means invalid measurement** (`const.INVALID_VALUE`), normalized to
   `None` in `api._async_get_latest_value` — never surface the raw sentinel value
   to entities.
+- **Sensors keep their last known value when the feed reads empty**
+  (`sensor.py: ArpaLombardiaSensor.native_value`). The NRT feed only holds the
+  current day's data, so every sensor is `None` for a few hours after midnight
+  (and during ARPA maintenance); PM/CO/benzene are moving averages that update
+  even less often. Instead of flipping to `unknown` in those gaps, the entity
+  caches the last non-`None` reading (restored across restarts via
+  `RestoreEntity`) and keeps returning it until a newer reading arrives. There
+  is deliberately **no staleness timeout** — a genuinely stuck sensor is
+  recognizable by its `last_changed`, not by going `unknown`. The entity is only
+  `unknown` when no value has ever been seen. So `coordinator.data[id] is None`
+  does *not* imply the entity is `unknown` — check `_last_value` before assuming
+  a "missing value" bug.
 - **Station selection is distance-sorted** in `config_flow.py` using
   `homeassistant.util.location.distance` against `hass.config.latitude/longitude`;
   stations with missing lat/lng sort last alphabetically rather than being

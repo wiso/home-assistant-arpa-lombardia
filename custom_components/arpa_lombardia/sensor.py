@@ -8,8 +8,10 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.components.sensor.const import DEVICE_CLASS_UNITS
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import SensorInfo
 from .const import CONF_STATION_NAME, DOMAIN
@@ -88,7 +90,7 @@ async def async_setup_entry(
     )
 
 
-class ArpaLombardiaSensor(ArpaLombardiaEntity, SensorEntity):
+class ArpaLombardiaSensor(ArpaLombardiaEntity, RestoreEntity, SensorEntity):
     """Representation of a single pollutant sensor."""
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -105,6 +107,7 @@ class ArpaLombardiaSensor(ArpaLombardiaEntity, SensorEntity):
         self._attr_unique_id = f"{coordinator.idstazione}_{sensor_info.idsensore}"
         self._attr_name = sensor_info.nometiposensore
         self._attr_native_unit_of_measurement = sensor_info.unitamisura
+        self._last_value: float | None = None
         device_class = resolve_device_class(
             sensor_info.nometiposensore, sensor_info.unitamisura
         )
@@ -113,7 +116,34 @@ class ArpaLombardiaSensor(ArpaLombardiaEntity, SensorEntity):
         else:
             self._attr_icon = DEFAULT_ICON
 
+    async def async_added_to_hass(self) -> None:
+        """Restore the last known value so a restart doesn't lose it."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is None or last_state.state in (
+            STATE_UNKNOWN,
+            STATE_UNAVAILABLE,
+        ):
+            return
+        try:
+            self._last_value = float(last_state.state)
+        except (TypeError, ValueError):
+            return
+
     @property
     def native_value(self) -> float | None:
-        """Return the latest value for this sensor."""
-        return self.coordinator.data.get(self._idsensore)
+        """Return the latest value, falling back to the last known one.
+
+        The ARPA NRT feed only holds the current day's data, so every sensor
+        reads empty for a few hours after midnight (before the day's rows are
+        published) and during ARPA maintenance. Rather than dropping to
+        "unknown" in that window, keep showing the last value we read until a
+        newer one arrives. The entity only stays "unknown" if no value has ever
+        been seen (the timestamp of the reading is visible as the state's
+        last_changed, so a genuinely stale sensor is still recognizable).
+        """
+        value = self.coordinator.data.get(self._idsensore)
+        if value is not None:
+            self._last_value = value
+            return value
+        return self._last_value
