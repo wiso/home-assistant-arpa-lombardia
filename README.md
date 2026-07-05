@@ -8,8 +8,11 @@ Home Assistant integration for the **air quality monitoring stations of ARPA
 Lombardia** (Regione Lombardia open data). Pick a monitoring station and get one
 sensor per pollutant it actually measures (PM10, PM2.5, NO₂, O₃, SO₂, CO, …).
 
-Data source: [dati.lombardia.it](https://www.dati.lombardia.it/) (near-real-time
-air quality datasets, updated hourly).
+Data source: [dati.lombardia.it](https://www.dati.lombardia.it/) (ARPA's
+near-real-time dataset, `ykhg-b8rs`). **Please read [How "real-time" is
+this?](#how-real-time-is-this-important) below** — the data is hourly, and some
+pollutants are reported as 24-hour averages rather than the current
+concentration.
 
 ## Features
 
@@ -46,6 +49,34 @@ created automatically.
 
 To change how often data is fetched: open the integration and click
 **Configure**, then set the scan interval (minimum 300 seconds).
+
+## How "real-time" is this? (important)
+
+Home Assistant users usually expect a sensor that updates live, continuously.
+**This data is not that.** It is the official regional monitoring network's
+published data, and it has two inherent limits worth understanding before you
+build automations or alerts on it:
+
+- **Hourly, not continuous.** ARPA's reference-grade stations publish **one value
+  per hour** — roughly a bit after the top of each hour. Polling more often gains
+  nothing (the scan interval defaults to 30 minutes; the minimum is 300 s).
+
+- **Some pollutants are 24-hour averages, not the current value.** The sensors
+  fall into two families that behave very differently:
+  - **Gases — NO₂, NO, SO₂, O₃, NOx:** each reading is the **hourly value**. These
+    rise and fall through the day as you would expect.
+  - **PM10, PM2.5, CO, benzene:** the feed exposes these as a **rolling 24-hour
+    average**, not the instantaneous hourly concentration. This is by design (PM
+    is regulated as a daily mean). It was verified against the independent EEA
+    hourly feed (via OpenAQ): the ARPA value tracks the 24-hour moving average to
+    within ~1 µg/m³, while the true hourly concentration can be 3× lower. **So
+    these sensors look flat and slow to change — that is the average moving, not a
+    stuck sensor or a bug.** An evening drop in real air quality barely moves the
+    PM number, because it is averaged over the whole day.
+
+If you specifically need the sharper sub-hourly swing of PM, ARPA's open data
+does not expose it — the EEA / OpenAQ hourly feed does, at the cost of a ~2-hour
+delay and occasional gaps.
 
 ## Notes on the data
 

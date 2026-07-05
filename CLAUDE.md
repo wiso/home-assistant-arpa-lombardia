@@ -105,7 +105,13 @@ Key cross-file behaviors worth knowing before touching this code:
   (`sensor.py: ArpaLombardiaSensor.native_value`). The NRT feed only holds the
   current day's data, so every sensor is `None` for a few hours after midnight
   (and during ARPA maintenance); PM/CO/benzene are moving averages that update
-  even less often. Instead of flipping to `unknown` in those gaps, the entity
+  even less often. (Specifically, the NRT feed exposes **PM10/PM2.5/CO/benzene as
+  a rolling 24-hour average, not the hourly concentration** — verified against the
+  independent EEA hourly feed via OpenAQ: the ARPA value tracks the 24 h moving
+  average to within ~1 µg/m³ while the true hourly can be 3× lower. So a "flat"
+  PM sensor is the average, *not* a stuck reading. The gases NO₂/NO/SO₂/O₃/NOx
+  are true hourly values. This is documented for users in the README's "How
+  real-time is this?" section.) Instead of flipping to `unknown` in those gaps, the entity
   caches the last non-`None` reading (restored across restarts via
   `RestoreEntity`) and keeps returning it until a newer reading arrives. There
   is deliberately **no staleness timeout** — a genuinely stuck sensor is
